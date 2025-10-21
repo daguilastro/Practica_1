@@ -1,3 +1,7 @@
+Daniel Aguilar Castro - daaguilarc@unal.edu.co
+Andres Felipe Arias Gonzalez - anariasg@unal.edu.co
+Deiber David Gongora Hurtado - dgongora@unal.edu.co
+
 ## Campos utilizados:
 
 ### summonerName (string):
