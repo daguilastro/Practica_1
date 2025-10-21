@@ -1,7 +1,7 @@
 all:
-	g++ -std=c++11 -o build_sorted_index build_sorted_index.cpp
-	g++ -std=c++11 -o server_search server_search.cpp
-	g++ -std=c++11 -o client_search client_search.cpp
+	g++ -o build_sorted_index build_sorted_index.cpp
+	g++ -o server_search server_search.cpp
+	g++ -o client_search client_search.cpp
 
 run: all
 	./build_sorted_index
