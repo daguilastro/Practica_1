@@ -184,7 +184,7 @@ Cerrando cliente y servidor...</br>
 
 
 ## Arquitectura del Sistema
-![](/Driagram.png)
+![](/Diagram.png)
 
 ## Complejidad del Sistema
 
