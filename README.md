@@ -1,9 +1,20 @@
+# Práctica 1 - Sistemas Operativos
+
+Procesos y comunicación entre procesos.
+
+</br>
 ## Integrantes
 
 ### Daniel Aguilar Castro - daaguilarc@unal.edu.co
 ### Andres Felipe Arias Gonzalez - anariasg@unal.edu.co
 ### Deiber David Gongora Hurtado - dgongora@unal.edu.co
 
+</br>
+## Descripción de la práctica
+
+Usamos un dataset de 1Gb que guarda los datos de todas las partidas que se jugaron en 2020 en challenger korea para ejecutar una bùsqueda en menos de dos segundos usando como criterio el nombre de un jugador. Tècnicamente usamos dos procesos no emparentados que se comunican a travès de named pipes (una para enviar el criterio y otra para enviar la respuesta) La bùsqueda se hace usando una tabla hash indexada y ordenada, encontramos la posiciòn del hash usando bùsqueda binaria para posteriormente irnos directamente a la posiciòn de los datos en la csv.
+
+</br>
 ## Campos utilizados:
 
 ### summonerName (string):
@@ -36,30 +47,25 @@ Se encuentra en participants[i].stats.win
 Valores: True o False
 Propósito: Determinar el resultado de la partida para ese jugador
 
-</br></br>
-
-## El sistema implementa búsqueda exacta por nombre de jugador usando:
-Técnica de indexación: Hash Table con búsqueda binaria
-
 </br>
+## Implementación De Búsqueda Exacta
+
+### Técnica de indexación: 
+Hash Table con búsqueda binaria
+
 ### Decisiones de diseño:
 Hash FNV-1a de 32 bits reducido a 16 bits:
 
     C++
-
 if(line.find(name) == string::npos) continue;
 
-
 ### Uso de seekg() para acceso aleatorio:
-
-Justificación: No carga el dataset completo en memoria
+No carga el dataset completo en memoria </br>
 Solo lee las líneas necesarias usando offsets guardados
 
 </br></br>
 
 ## Rangos de Valores Válidos
-
-    C++
 
 ### Hash
 hash16:           [0, 65535]        // uint16_t, módulo 65536
@@ -76,23 +82,23 @@ win:              {True, False}     // Boolean
 longitud:         [3, 16]           // Según límites de Riot Games
 caracteres:       UTF-8             // Incluye coreano, chino, etc.
 
-</br></br>
-
-## Ejemplos Específicos de Uso del Programa
 </br>
+## Ejemplos Específicos de Uso del Programa
+
 ### Compilación:
 
-bash: make
+    bash
+make
 
 Esto genera:
 build_sorted_index → Construye el índice
 server_search → Servidor de búsqueda
 client_search → Cliente interactivo
 
-</br>
 ### Ejecución completa:
 
-bash: make run
+    bash
+make run
 
 Esto:
 Construye el índice (index_sorted.idx)
@@ -180,55 +186,25 @@ Cerrando cliente y servidor...
 
 
 ## Arquitectura del Sistema
-</br>
-Code
-┌─────────────────┐
-│  dataset.csv    │  ← Dataset original (no se modifica)
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ build_sorted_index.cpp  │  ← Procesa CSV y genera índice
-└────────┬────────────────┘
-         │
-         ▼
-┌──────────────────────┐
-│ index_sorted.idx     │  ← Tabla hash ordenada (hash16 + offset)
-└──────────────────────┘
-         │
-         ▼
-┌──────────────────────┐
-│ server_search.cpp    │  ← Lee índice y responde consultas
-└────────┬─────────────┘
-         │
-    Named Pipes:
-    /tmp/search_request  ←─── Solicitudes
-    /tmp/search_response ──→  Respuestas
-         │
-         ▼
-┌──────────────────────┐
-│ client_search.cpp    │  ← Interfaz interactiva del usuario
-└──────────────────────┘
-</br></br>
+(Driagram)
 
 ## Complejidad del Sistema
-</br>
+
 Construcción del índice: O(n log n) donde n = número total de jugadores
 Búsqueda por nombre: O(log n + k) donde k = colisiones del hash
 Espacio en disco: ~10 bytes por jugador en el índice
 
-</br></br>
-
-## Índice ordenado por hash:
 </br>
+## Índice ordenado por hash:
+
     C++
 sort(entries.begin(), entries.end(), LessEntry());
 
 ### Justificación: Permite búsqueda binaria O(log n) en vez de O(n)
-</br>
-### Ordenamiento secundario por offset para mantener orden de aparición
-</br></br>
 
+### Ordenamiento secundario por offset para mantener orden de aparición
+
+</br>
 ## Búsqueda en dos fases:
 
 ### Fase 1: Búsqueda binaria del hash en el índice (lower_bound + upper_bound)
