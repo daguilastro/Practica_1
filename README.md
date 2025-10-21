@@ -153,25 +153,25 @@ Ingrese el nombre del jugador a buscar (o 'exit' para salir): Gen G Clid
 [CLIENT] Enviando solicitud al servidor...
 [CLIENT] Esperando respuesta del servidor...
 </br>
-================= PARTIDA =================
-Jugador buscado : Gen G Clid
-Duracion        : 22 min 03 s
-Resultado       : Ganó
-Participantes   :
-  1. ...
-  7. Gen G Clid
-  ...
-===========================================
-Enter = siguiente,  q = salir > [ENTER]
+================= PARTIDA =================</br>
+Jugador buscado : Gen G Clid</br>
+Duracion        : 22 min 03 s</br>
+Resultado       : Ganó</br>
+Participantes   :</br>
+  1. ...</br>
+  7. Gen G Clid</br>
+  ...</br>
+===========================================</br>
+Enter = siguiente,  q = salir > [ENTER]</br>
 </br>
-================= PARTIDA =================
-Jugador buscado : Gen G Clid
-Duracion        : 31 min 45 s
-Resultado       : Perdió
-Participantes   :
-  ...
-===========================================
-Enter = siguiente,  q = salir > q
+================= PARTIDA =================</br>
+Jugador buscado : Gen G Clid</br>
+Duracion        : 31 min 45 s</br>
+Resultado       : Perdió</br>
+Participantes   :</br>
+  ...</br>
+===========================================</br>
+Enter = siguiente,  q = salir > q</br>
 </br>
 Búsqueda interrumpida por el usuario. </br></br>
 
@@ -184,7 +184,7 @@ Cerrando cliente y servidor...
 
 
 ## Arquitectura del Sistema
-![](Driagram)
+![](Driagram.png)
 
 ## Complejidad del Sistema
 
