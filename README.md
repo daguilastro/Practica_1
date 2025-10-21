@@ -47,13 +47,16 @@ Propósito: Determinar el resultado de la partida para ese jugador</br>
 
 ## Implementación De Búsqueda Exacta
 
+
 ### Técnica de indexación: 
 Hash Table con búsqueda binaria
 
 ### Decisiones de diseño:
 Hash FNV-1a de 32 bits reducido a 16 bits:
 
-<pre> ```cpp if (line.find(name) == string::npos) continue; ``` </pre>
+```cpp
+if (line.find(name) == string::npos) continue;
+```
 
 ### Uso de seekg() para acceso aleatorio:
 No carga el dataset completo en memoria </br>
@@ -82,8 +85,9 @@ caracteres:       UTF-8             // Incluye coreano, chino, etc.</br>
 
 ### Compilación:
 
-    bash
-make
+```bash
+make 
+```
 
 Esto genera:
 build_sorted_index → Construye el índice
@@ -92,7 +96,9 @@ client_search → Cliente interactivo
 
 ### Ejecución completa:
 
-<pre> ```bash make run ``` </pre>
+```bash
+make run
+```
 
 Esto:
 Construye el índice (index_sorted.idx)
@@ -102,8 +108,10 @@ Cierra todo automáticamente
 
 ## Ejemplo 1: Búsqueda básica
 
-bash: $ ./client_search
-</br>
+```bash
+$ ./client_search
+```
+
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): DWG Canyon
 </br>
 [CLIENT] Enviando solicitud al servidor...
@@ -176,7 +184,7 @@ Cerrando cliente y servidor...
 
 
 ## Arquitectura del Sistema
-(Driagram)
+![](Driagram)
 
 ## Complejidad del Sistema
 
@@ -186,7 +194,9 @@ Espacio en disco: ~10 bytes por jugador en el índice
 
 ## Índice ordenado por hash:
 
-<pre> ```cpp sort(entries.begin(), entries.end(), LessEntry()); ``` </pre>
+```cpp
+sort(entries.begin(), entries.end(), LessEntry());
+```
 
 ### Justificación: Permite búsqueda binaria O(log n) en vez de O(n)
 
