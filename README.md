@@ -17,42 +17,42 @@ Usamos un dataset de 1Gb que guarda los datos de todas las partidas que se jugar
 
 ### summonerName (string):
 
-Nombre del invocador/jugador
-Se encuentra dentro del JSON participantIdentities
-Formato en CSV: 'summonerName': 'NombreJugador'
-Hay 10 nombres por fila (10 jugadores por partida)
-Propósito: Campo principal de búsqueda, se indexa con hash FNV-1a
+Nombre del invocador/jugador</br>
+Se encuentra dentro del JSON participantIdentities</br>
+Formato en CSV: 'summonerName': 'NombreJugador'</br>
+Hay 10 nombres por fila (10 jugadores por partida)</br>
+Propósito: Campo principal de búsqueda, se indexa con hash FNV-1a</br>
 
 
 ### gameDuration (float):
 
-Duración de la partida en segundos
-Segunda columna del CSV (después del índice)
-Propósito: Se muestra en minutos:segundos en los resultados
+Duración de la partida en segundos</br>
+Segunda columna del CSV (después del índice)</br>
+Propósito: Se muestra en minutos:segundos en los resultados</br>
 
 
 ### participantId (int):
 
-ID del jugador dentro de la partida (1-10)
-Se encuentra en participantIdentities
-Propósito: Relacionar el jugador con sus estadísticas
+ID del jugador dentro de la partida (1-10)</br>
+Se encuentra en participantIdentities</br>
+Propósito: Relacionar el jugador con sus estadísticas</br>
 
 
 ### win (boolean):
 
-Indica si el jugador ganó o perdió
-Se encuentra en participants[i].stats.win
-Valores: True o False
+Indica si el jugador ganó o perdió</br>
+Se encuentra en participants[i].stats.win</br>
+Valores: True o False</br>
 Propósito: Determinar el resultado de la partida para ese jugador</br>
 
 ## Implementación De Búsqueda Exacta
 
 
 ### Técnica de indexación: 
-Hash Table con búsqueda binaria
+Hash Table con búsqueda binaria</br>
 
 ### Decisiones de diseño:
-Hash FNV-1a de 32 bits reducido a 16 bits:
+Hash FNV-1a de 32 bits reducido a 16 bits:</br>
 
 ```cpp
 if (line.find(name) == string::npos) continue;
@@ -60,24 +60,24 @@ if (line.find(name) == string::npos) continue;
 
 ### Uso de seekg() para acceso aleatorio:
 No carga el dataset completo en memoria </br>
-Solo lee las líneas necesarias usando offsets guardados
+Solo lee las líneas necesarias usando offsets guardados</br>
 
 
 ## Rangos de Valores Válidos
 
 ### Hash
-hash16:           [0, 65535]        // uint16_t, módulo 65536
+hash16:           [0, 65535]        // uint16_t, módulo 65536</br>
 
 ### Offset en CSV  
-offset:           [0, 2^64-1]       // uint64_t, posición en bytes
+offset:           [0, 2^64-1]       // uint64_t, posición en bytes</br>
 
 ### Datos extraídos
-gameDuration:     [180.0, 7200.0]   // 3 min - 2 horas (estimado)
-participantId:    [1, 10]           // Siempre 10 jugadores
-win:              {True, False}     // Boolean
+gameDuration:     [180.0, 7200.0]   // 3 min - 2 horas (estimado)</br>
+participantId:    [1, 10]           // Siempre 10 jugadores</br>
+win:              {True, False}     // Boolean</br>
 
 ### summonerName
-longitud:         [3, 16]           // Según límites de Riot Games
+longitud:         [3, 16]           // Según límites de Riot Games</br>
 caracteres:       UTF-8             // Incluye coreano, chino, etc.</br>
 
 
@@ -89,10 +89,10 @@ caracteres:       UTF-8             // Incluye coreano, chino, etc.</br>
 make 
 ```
 
-Esto genera:
-build_sorted_index → Construye el índice
-server_search → Servidor de búsqueda
-client_search → Cliente interactivo
+Esto genera:</br>
+build_sorted_index → Construye el índice</br>
+server_search → Servidor de búsqueda</br>
+client_search → Cliente interactivo</br>
 
 ### Ejecución completa:
 
@@ -101,10 +101,10 @@ make run
 ```
 
 Esto:
-Construye el índice (index_sorted.idx)
-Inicia el servidor en background
-Ejecuta el cliente
-Cierra todo automáticamente
+Construye el índice (index_sorted.idx)</br>
+Inicia el servidor en background</br>
+Ejecuta el cliente</br>
+Cierra todo automáticamente</br>
 
 ## Ejemplo 1: Búsqueda básica
 
@@ -114,14 +114,14 @@ $ ./client_search
 
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): DWG Canyon
 </br>
-[CLIENT] Enviando solicitud al servidor...
-[CLIENT] Esperando respuesta del servidor...
+[CLIENT] Enviando solicitud al servidor...</br>
+[CLIENT] Esperando respuesta del servidor...</br>
 </br>
-================= PARTIDA =================
-Jugador buscado : DWG Canyon
-Duracion        : 22 min 03 s
-Resultado       : Ganó
-Participantes   :
+================= PARTIDA =================</br>
+Jugador buscado : DWG Canyon</br>
+Duracion        : 22 min 03 s</br>
+Resultado       : Ganó</br>
+Participantes   :</br>
   1. 쪼렙이다말로하자
   2. 불질러
   3. Youtube Thal
@@ -132,8 +132,8 @@ Participantes   :
   8. Gen G Rascal
   9. 송아지얼룩송아지
   10. DWG Canyon
-(offset CSV: 1234567)
-===========================================
+(offset CSV: 1234567)</br>
+===========================================</br>
 Enter = siguiente,  q = salir > </br>
 
 
@@ -141,17 +141,17 @@ Enter = siguiente,  q = salir > </br>
 
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): FakerXD123
 </br>
-[CLIENT] Enviando solicitud al servidor...
-[CLIENT] Esperando respuesta del servidor...
+[CLIENT] Enviando solicitud al servidor...</br>
+[CLIENT] Esperando respuesta del servidor...</br>
 </br>
-No se encontraron resultados.</br></br>
+No se encontraron resultados.</br>
 
 ### Ejemplo 3: Múltiples resultados
 
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): Gen G Clid
 </br>
-[CLIENT] Enviando solicitud al servidor...
-[CLIENT] Esperando respuesta del servidor...
+[CLIENT] Enviando solicitud al servidor...</br>
+[CLIENT] Esperando respuesta del servidor...</br>
 </br>
 ================= PARTIDA =================</br>
 Jugador buscado : Gen G Clid</br>
@@ -179,18 +179,18 @@ Búsqueda interrumpida por el usuario. </br></br>
 
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): exit
 </br>
-Cerrando cliente y servidor...
+Cerrando cliente y servidor...</br>
 ¡Hasta luego! </br></br>
 
 
 ## Arquitectura del Sistema
-![](Driagram.png)
+![](/Driagram.png)
 
 ## Complejidad del Sistema
 
-Construcción del índice: O(n log n) donde n = número total de jugadores
-Búsqueda por nombre: O(log n + k) donde k = colisiones del hash
-Espacio en disco: ~10 bytes por jugador en el índice
+Construcción del índice: O(n log n) donde n = número total de jugadores</br>
+Búsqueda por nombre: O(log n + k) donde k = colisiones del hash</br>
+Espacio en disco: ~10 bytes por jugador en el índice</br>
 
 ## Índice ordenado por hash:
 
