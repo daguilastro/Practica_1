@@ -1,20 +1,18 @@
 # Práctica 1 - Sistemas Operativos
 
-Procesos y comunicación entre procesos.
+Procesos y comunicación entre procesos.</br>
 
-</br>
 ## Integrantes
 
 ### Daniel Aguilar Castro - daaguilarc@unal.edu.co
 ### Andres Felipe Arias Gonzalez - anariasg@unal.edu.co
-### Deiber David Gongora Hurtado - dgongora@unal.edu.co
+### Deiber David Gongora Hurtado - dgongora@unal.edu.co </br>
 
-</br>
 ## Descripción de la práctica
 
-Usamos un dataset de 1Gb que guarda los datos de todas las partidas que se jugaron en 2020 en challenger korea para ejecutar una bùsqueda en menos de dos segundos usando como criterio el nombre de un jugador. Tècnicamente usamos dos procesos no emparentados que se comunican a travès de named pipes (una para enviar el criterio y otra para enviar la respuesta) La bùsqueda se hace usando una tabla hash indexada y ordenada, encontramos la posiciòn del hash usando bùsqueda binaria para posteriormente irnos directamente a la posiciòn de los datos en la csv.
+Usamos un dataset de 1Gb que guarda los datos de todas las partidas que se jugaron en 2020 en challenger korea para ejecutar una bùsqueda en menos de dos segundos usando como criterio el nombre de un jugador. Tècnicamente usamos dos procesos no emparentados que se comunican a travès de named pipes (una para enviar el criterio y otra para enviar la respuesta) La bùsqueda se hace usando una tabla hash indexada y ordenada, encontramos la posiciòn del hash usando bùsqueda binaria para posteriormente irnos directamente a la posiciòn de los datos en la csv. </br>
 
-</br>
+
 ## Campos utilizados:
 
 ### summonerName (string):
@@ -45,9 +43,8 @@ Propósito: Relacionar el jugador con sus estadísticas
 Indica si el jugador ganó o perdió
 Se encuentra en participants[i].stats.win
 Valores: True o False
-Propósito: Determinar el resultado de la partida para ese jugador
+Propósito: Determinar el resultado de la partida para ese jugador</br>
 
-</br>
 ## Implementación De Búsqueda Exacta
 
 ### Técnica de indexación: 
@@ -56,14 +53,12 @@ Hash Table con búsqueda binaria
 ### Decisiones de diseño:
 Hash FNV-1a de 32 bits reducido a 16 bits:
 
-    C++
-if(line.find(name) == string::npos) continue;
+<pre> ```cpp if (line.find(name) == string::npos) continue; ``` </pre>
 
 ### Uso de seekg() para acceso aleatorio:
 No carga el dataset completo en memoria </br>
 Solo lee las líneas necesarias usando offsets guardados
 
-</br></br>
 
 ## Rangos de Valores Válidos
 
@@ -80,9 +75,9 @@ win:              {True, False}     // Boolean
 
 ### summonerName
 longitud:         [3, 16]           // Según límites de Riot Games
-caracteres:       UTF-8             // Incluye coreano, chino, etc.
+caracteres:       UTF-8             // Incluye coreano, chino, etc.</br>
 
-</br>
+
 ## Ejemplos Específicos de Uso del Programa
 
 ### Compilación:
@@ -97,8 +92,7 @@ client_search → Cliente interactivo
 
 ### Ejecución completa:
 
-    bash
-make run
+<pre> ```bash make run ``` </pre>
 
 Esto:
 Construye el índice (index_sorted.idx)
@@ -106,7 +100,6 @@ Inicia el servidor en background
 Ejecuta el cliente
 Cierra todo automáticamente
 
-</br>
 ## Ejemplo 1: Búsqueda básica
 
 bash: $ ./client_search
@@ -133,21 +126,20 @@ Participantes   :
   10. DWG Canyon
 (offset CSV: 1234567)
 ===========================================
-Enter = siguiente,  q = salir > 
-</br></br>
+Enter = siguiente,  q = salir > </br>
+
 
 ### Ejemplo 2: Jugador no encontrado
-</br>
+
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): FakerXD123
 </br>
 [CLIENT] Enviando solicitud al servidor...
 [CLIENT] Esperando respuesta del servidor...
 </br>
-No se encontraron resultados.
-</br></br>
+No se encontraron resultados.</br></br>
 
 ### Ejemplo 3: Múltiples resultados
-</br>
+
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): Gen G Clid
 </br>
 [CLIENT] Enviando solicitud al servidor...
@@ -173,16 +165,14 @@ Participantes   :
 ===========================================
 Enter = siguiente,  q = salir > q
 </br>
-Búsqueda interrumpida por el usuario.
-</br></br>
+Búsqueda interrumpida por el usuario. </br></br>
 
 ### Ejemplo 4: Salir del programa
-</br>
+
 Ingrese el nombre del jugador a buscar (o 'exit' para salir): exit
 </br>
 Cerrando cliente y servidor...
-¡Hasta luego!
-</br></br>
+¡Hasta luego! </br></br>
 
 
 ## Arquitectura del Sistema
@@ -194,17 +184,14 @@ Construcción del índice: O(n log n) donde n = número total de jugadores
 Búsqueda por nombre: O(log n + k) donde k = colisiones del hash
 Espacio en disco: ~10 bytes por jugador en el índice
 
-</br>
 ## Índice ordenado por hash:
 
-    C++
-sort(entries.begin(), entries.end(), LessEntry());
+<pre> ```cpp sort(entries.begin(), entries.end(), LessEntry()); ``` </pre>
 
 ### Justificación: Permite búsqueda binaria O(log n) en vez de O(n)
 
-### Ordenamiento secundario por offset para mantener orden de aparición
+### Ordenamiento secundario por offset para mantener orden de aparición</br>
 
-</br>
 ## Búsqueda en dos fases:
 
 ### Fase 1: Búsqueda binaria del hash en el índice (lower_bound + upper_bound)
