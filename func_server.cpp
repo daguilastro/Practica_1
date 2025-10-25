@@ -1,5 +1,6 @@
 #include "func_server.hpp"
 
+// Función hash reducida
 uint32_t fnv1a32(const string &s, uint32_t HASH_MOD) {
   const uint32_t FNV_PRIME = 16777619u;
   const uint32_t FNV_OFFSET = 2166136261u;
@@ -13,6 +14,7 @@ uint32_t fnv1a32(const string &s, uint32_t HASH_MOD) {
   return hash % HASH_MOD;
 }
 
+// Leer línea del csv
 bool read_csv_line_at(ifstream &csv, uint64_t off, string &out) {
   csv.clear();
   csv.seekg((long long)off, ios::beg);
@@ -25,6 +27,7 @@ bool read_csv_line_at(ifstream &csv, uint64_t off, string &out) {
   return true;
 }
 
+// Búsqueda binaria para la última coincidencia del hash
 int64_t lower_bound_hash(ifstream &idx, uint16_t target, uint64_t N) {
   uint64_t lo = 0;
   uint64_t hi = N;
@@ -59,6 +62,7 @@ int64_t lower_bound_hash(ifstream &idx, uint16_t target, uint64_t N) {
   return (e.hash16 == target) ? (int64_t)lo : -1;
 }
 
+// Búsqueda binaria para la primer coincidencia del hash
 int64_t upper_bound_hash(ifstream &idx, uint16_t target, uint64_t N,
                          uint64_t L) {
   uint64_t lo = L;
@@ -84,6 +88,7 @@ int64_t upper_bound_hash(ifstream &idx, uint16_t target, uint64_t N,
   return (int64_t)lo;
 }
 
+// Busca en el archivo indexado, toma los datos del dataset y retorna una string donde están los resultados listos para ser impresos de todas las partidas encontradas
 string searchServer(string summoner_name) {
   uint16_t h = fnv1a32(summoner_name, HASH_MOD);
 
@@ -196,6 +201,7 @@ string searchServer(string summoner_name) {
   return all_results;
 }
 
+// Recibe la petición del cliente (el nombre)
 void recieveRequest(const char *request_pipe, char *buffer) {
   int fd_req = open(request_pipe, O_RDONLY);
   if (fd_req < 0) {
@@ -209,6 +215,7 @@ void recieveRequest(const char *request_pipe, char *buffer) {
   close(fd_req);
 }
 
+// Se envía al cliente la información encontrada
 void sendResult(const char *response_pipe, string &result) {
   int fd_resp = open(response_pipe, O_WRONLY);
   if (fd_resp < 0) {

@@ -2,7 +2,6 @@
 #include <cstdio>
 
 // Enviamos por la pipe /tmp/search_request el nombre que vamos a buscar
-
 void send_request(const string& name){
     const char* request_pipe = "/tmp/search_request"; // Dirección donde esta guardada la pipe
     
@@ -41,6 +40,7 @@ string receive_response(){
     return result;
 }
 
+// Mostramos de forma estética el resultado enviado del servidor
 void display_matches_interactive(const string& all_matches) {
     
     size_t pos = 0;
