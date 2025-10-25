@@ -13,23 +13,18 @@ uint32_t fnv1a32(const string &s, uint32_t HASH_MOD) {
   return hash % HASH_MOD;
 }
 
-// Función para leer la línea del dataset
 bool read_csv_line_at(ifstream &csv, uint64_t off, string &out) {
   csv.clear();
-  csv.seekg((long long)off,
-            ios::beg); // Usamos seekg para no cargar a memoria el dataset
-                       // entero, solamente leer lo que nos importa
+  csv.seekg((long long)off, ios::beg);
   if (!csv.good())
     return false;
   if (!getline(csv, out))
-    return false; // Guardamos en la string out que pasamos por referencia el
-                  // valor de retorno
+    return false;
   if (!out.empty() && out.back() == '\r')
     out.pop_back();
   return true;
 }
 
-// búsqueda binaria para el límite inferior
 int64_t lower_bound_hash(ifstream &idx, uint16_t target, uint64_t N) {
   uint64_t lo = 0;
   uint64_t hi = N;
@@ -64,7 +59,6 @@ int64_t lower_bound_hash(ifstream &idx, uint16_t target, uint64_t N) {
   return (e.hash16 == target) ? (int64_t)lo : -1;
 }
 
-// búsqueda binaria para el limite superior
 int64_t upper_bound_hash(ifstream &idx, uint16_t target, uint64_t N,
                          uint64_t L) {
   uint64_t lo = L;
@@ -91,138 +85,124 @@ int64_t upper_bound_hash(ifstream &idx, uint16_t target, uint64_t N,
 }
 
 string searchServer(string summoner_name) {
-    // Inicio de medición de tiempo
-    auto start_time = std::chrono::high_resolution_clock::now();
+  uint16_t h = fnv1a32(summoner_name, HASH_MOD);
 
-    uint16_t h = fnv1a32(summoner_name, HASH_MOD);
-    
-    ifstream idx("index_sorted.idx", ios::binary);
-    if (!idx) {
-        return "ERROR: No pude abrir index_sorted.idx\n";
+  ifstream idx("index_sorted.idx", ios::binary);
+  if (!idx) {
+    return "ERROR: No pude abrir index_sorted.idx\n";
+  }
+
+  ifstream csv("dataset.csv", ios::binary);
+  if (!csv) {
+    return "ERROR: No pude abrir dataset.csv\n";
+  }
+
+  idx.seekg(0, ios::end);
+  uint64_t bytes = idx.tellg();
+  uint64_t N = bytes / 10;
+
+  int64_t L = lower_bound_hash(idx, h, N);
+  if (L < 0) {
+    return "ERROR: Jugador no encontrado en el índice\n";
+  }
+
+  int64_t R = upper_bound_hash(idx, h, N, L);
+
+  vector<string> csv_lines;
+  for (int64_t i = L; i < R; ++i) {
+    idx.seekg(i * 10, ios::beg);
+
+    Entry e;
+    if (!idx.read((char *)&e.hash16, sizeof(e.hash16))) {
+      continue;
     }
-    
-    ifstream csv("dataset.csv", ios::binary);
-    if (!csv) {
-        return "ERROR: No pude abrir dataset.csv\n";
+    if (!idx.read((char *)&e.offset, sizeof(e.offset))) {
+      continue;
     }
-    
-    idx.seekg(0, ios::end);
-    uint64_t bytes = idx.tellg();
-    uint64_t N = bytes / 10;
-    
-    int64_t L = lower_bound_hash(idx, h, N);
-    if (L < 0) {
-        return "ERROR: Jugador no encontrado en el índice\n";
+
+    string line;
+    if (read_csv_line_at(csv, e.offset, line)) {
+      csv_lines.push_back(line);
     }
-    
-    int64_t R = upper_bound_hash(idx, h, N, L);
-    
-    // Recolectar todas las líneas CSV
-    vector<string> csv_lines;
-    for (int64_t i = L; i < R; ++i) {
-        idx.seekg(i * 10, ios::beg);
-        
-        Entry e;
-        if (!idx.read((char *)&e.hash16, sizeof(e.hash16))) {
-            continue;
-        }
-        if (!idx.read((char *)&e.offset, sizeof(e.offset))) {
-            continue;
-        }
-        
-        string line;
-        if (read_csv_line_at(csv, e.offset, line)) {
-            csv_lines.push_back(line);
-        }
-    }
-    
-    if (csv_lines.empty()) {
-        return "ERROR: No se pudieron leer líneas del CSV\n";
-    }
-    
-    // Crear un solo proceso Python
-    int pipe_to_python[2];
-    int pipe_from_python[2];
-    
-    if (pipe(pipe_to_python) == -1 || pipe(pipe_from_python) == -1) {
-        return "ERROR: No se pudieron crear pipes\n";
-    }
-    
-    pid_t pid = fork();
-    
-    if (pid == -1) {
-        close(pipe_to_python[0]);
-        close(pipe_to_python[1]);
-        close(pipe_from_python[0]);
-        close(pipe_from_python[1]);
-        return "ERROR: No se pudo hacer fork\n";
-    }
-    
-    if (pid == 0) {
-        // PROCESO HIJO - Python
-        close(pipe_to_python[1]);
-        close(pipe_from_python[0]);
-        
-        dup2(pipe_to_python[0], STDIN_FILENO);
-        dup2(pipe_from_python[1], STDOUT_FILENO);
-        
-        close(pipe_to_python[0]);
-        close(pipe_from_python[1]);
-        
-        execlp("python3", "python3", "process_matches.py", summoner_name.c_str(), nullptr);
-        
-        exit(1);
-    }
-    
-    // PROCESO PADRE
+  }
+
+  if (csv_lines.empty()) {
+    return "ERROR: No se pudieron leer líneas del CSV\n";
+  }
+
+  int pipe_to_python[2];
+  int pipe_from_python[2];
+
+  if (pipe(pipe_to_python) == -1 || pipe(pipe_from_python) == -1) {
+    return "ERROR: No se pudieron crear pipes\n";
+  }
+
+  int buffer_size = 1024 * 1024;
+  fcntl(pipe_to_python[1], F_SETPIPE_SZ, buffer_size);
+  fcntl(pipe_from_python[1], F_SETPIPE_SZ, buffer_size);
+
+  pid_t pid = fork();
+
+  if (pid == -1) {
     close(pipe_to_python[0]);
-    close(pipe_from_python[1]);
-    
-    // Enviar todas las líneas a Python
-    for (const auto& line : csv_lines) {
-        write(pipe_to_python[1], line.c_str(), line.length());
-        write(pipe_to_python[1], "\n", 1);
-    }
     close(pipe_to_python[1]);
-    
-    // Leer todo el resultado
-    string all_results = "";
-    char buffer[8192];
-    ssize_t bytes_read;
-    
-    while ((bytes_read = read(pipe_from_python[0], buffer, sizeof(buffer))) > 0) {
-        all_results.append(buffer, bytes_read);
-    }
-    
     close(pipe_from_python[0]);
-    
-    int status;
-    waitpid(pid, &status, 0);
-    
-    if (all_results.empty() || all_results.find("ERROR") == 0) {
-        return "ERROR: No se encontraron partidas del jugador\n";
-    }
-    
-    // Fin de medición de tiempo
-    auto end_time = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    
-    printf("Tiempo de búsqueda: %d\n", (int)duration);
+    close(pipe_from_python[1]);
+    return "ERROR: No se pudo hacer fork\n";
+  }
 
-    return all_results;
+  if (pid == 0) {
+    close(pipe_to_python[1]);
+    close(pipe_from_python[0]);
+
+    string input_fd_str = to_string(pipe_to_python[0]);
+    string output_fd_str = to_string(pipe_from_python[1]);
+
+    setenv("INPUT_FD", input_fd_str.c_str(), 1);
+    setenv("OUTPUT_FD", output_fd_str.c_str(), 1);
+
+    execlp("python3", "python3", "process_matches.py", summoner_name.c_str(),
+           nullptr);
+    exit(1);
+  }
+
+  close(pipe_to_python[0]);
+  close(pipe_from_python[1]);
+
+  string all_data_to_send = "";
+  for (const auto &line : csv_lines) {
+    all_data_to_send += line + "\n";
+  }
+  write(pipe_to_python[1], all_data_to_send.c_str(), all_data_to_send.length());
+  close(pipe_to_python[1]);
+
+  string all_results = "";
+  char buffer[1048576];
+  ssize_t bytes_read;
+
+  while ((bytes_read = read(pipe_from_python[0], buffer, sizeof(buffer))) > 0) {
+    all_results.append(buffer, bytes_read);
+  }
+
+  close(pipe_from_python[0]);
+
+  int status;
+  waitpid(pid, &status, 0);
+
+  if (all_results.empty() || all_results.find("ERROR") == 0) {
+    return "ERROR: No se encontraron partidas del jugador\n";
+  }
+
+  return all_results;
 }
 
 void recieveRequest(const char *request_pipe, char *buffer) {
-  int fd_req =
-      open(request_pipe,
-           O_RDONLY); // abrimos la pipe para recibir requests del cliente
+  int fd_req = open(request_pipe, O_RDONLY);
   if (fd_req < 0) {
     cerr << "[SERVER] Error abriendo pipe de solicitudes\n";
     return;
   }
-  ssize_t bytes_read =
-      read(fd_req, buffer, 255); // Esperamos a que haya algo en la pipe (hasta
-                                 // que no haya algo no sigue el código)
+  ssize_t bytes_read = read(fd_req, buffer, 255);
   if (bytes_read > 0) {
     buffer[bytes_read] = '\0';
   }
@@ -230,10 +210,7 @@ void recieveRequest(const char *request_pipe, char *buffer) {
 }
 
 void sendResult(const char *response_pipe, string &result) {
-  int fd_resp = open(response_pipe,
-                     O_WRONLY); // Abrimos la pipe para responder en modo
-                                // escritura y escribimos ahí la respuesta
-                                // usando como buffer la string result
+  int fd_resp = open(response_pipe, O_WRONLY);
   if (fd_resp < 0) {
     cerr << "[SERVER] Error abriendo pipe de respuesta\n";
   }

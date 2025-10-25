@@ -1,56 +1,62 @@
 #!/usr/bin/env python3
 import sys
-import json
-import unicodedata
+import ujson as json
 import csv
 import io
+import os
 
 def format_duration(seconds):
-    """Convierte segundos a formato MM:SS"""
     minutes = int(seconds // 60)
     secs = int(seconds % 60)
     return f"{minutes}:{secs:02d}"
+
+def convert_python_to_json(s):
+    return s.replace("'", '"').replace('True', 'true').replace('False', 'false').replace('None', 'null')
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         sys.exit(1)
     
     summoner_name = sys.argv[1]
+    
+    input_fd = int(os.environ.get('INPUT_FD'))
+    output_fd = int(os.environ.get('OUTPUT_FD'))
+    
     results = []
     
-    for line in sys.stdin:
+    input_data = b""
+    
+    while True:
+        try:
+            chunk = os.read(input_fd, 1048576)
+            if not chunk:
+                break
+            input_data += chunk
+        except OSError:
+            break
+    
+    lines = input_data.decode('utf-8').split('\n')
+    
+    for line in lines:
         line = line.strip()
         if not line:
             continue
         
         try:
-            reader = csv.reader(io.StringIO(line))
-            partes = next(reader)
+            partes = next(csv.reader([line]))
             
-            if len(partes) < 9:
+            if len(partes) < 10:
                 continue
             
             duracion_segundos = float(partes[2])
             duracion_formateada = format_duration(duracion_segundos)
-            identities_str = partes[8]
-            participants_str = partes[9]
             
-            # Convertir formato Python a JSON
-            identities_str = identities_str.replace("'", '"').replace('True', 'true').replace('False', 'false').replace('None', 'null')
-            participants_str = participants_str.replace("'", '"').replace('True', 'true').replace('False', 'false').replace('None', 'null')
+            identities = json.loads(convert_python_to_json(partes[8]))
+            participants = json.loads(convert_python_to_json(partes[9]))
             
-            identities = json.loads(identities_str)
-            participants = json.loads(participants_str)
+            id_a_nombre = {identity['participantId']: identity['player']['summonerName'] for identity in identities}
             
-            # Crear mapeo de ID a nombre
-            id_a_nombre = {}
-            for identity in identities:
-                pid = identity['participantId']
-                nombre = identity['player']['summonerName']
-                id_a_nombre[pid] = nombre
-            
-            # Buscar el jugador y separar equipos
-            player_participant_id = None
+            player_found = False
             equipo_azul = []
             equipo_rojo = []
             player_stats = None
@@ -59,7 +65,7 @@ if __name__ == "__main__":
             for participant in participants:
                 pid = participant['participantId']
                 team_id = participant['teamId']
-                nombre = id_a_nombre[pid]
+                nombre = id_a_nombre.get(pid)
                 
                 if team_id == 100:
                     equipo_azul.append(nombre)
@@ -67,65 +73,42 @@ if __name__ == "__main__":
                     equipo_rojo.append(nombre)
                 
                 if nombre == summoner_name:
-                    player_participant_id = pid
+                    player_found = True
                     player_stats = participant['stats']
                     resultado = 1 if player_stats['win'] else 0
             
-            if player_participant_id is None:
+            if not player_found:
                 continue
             
-            # Extraer estadísticas
             kills = player_stats['kills']
             deaths = player_stats['deaths']
             assists = player_stats['assists']
-            gold_earned = player_stats['goldEarned']
-            total_damage_to_champions = player_stats['totalDamageDealtToChampions']
-            total_damage_taken = player_stats['totalDamageTaken']
-            vision_score = player_stats['visionScore']
-            cs = player_stats['totalMinionsKilled'] + player_stats['neutralMinionsKilled']
-            level = player_stats['champLevel']
             kda = (kills + assists) / deaths if deaths > 0 else (kills + assists)
             
-            # Formatear salida sin bordes
-            output = []
-            output.append("")
-            output.append("=" * 60)
-            
-            if resultado == 1:
-                output.append("Resultado: ✓ VICTORIA")
-            else:
-                output.append("Resultado: ✗ DERROTA")
-            
-            output.append(f"Duración: {duracion_formateada}")
-            output.append("=" * 60)
-            output.append("")
-            
-            output.append("EQUIPO AZUL (100):")
-            for jugador in equipo_azul:
-                if jugador == summoner_name:
-                    output.append(f"  ► {jugador}")
-                else:
-                    output.append(f"    {jugador}")
-            
-            output.append("")
-            output.append("EQUIPO ROJO (200):")
-            for jugador in equipo_rojo:
-                if jugador == summoner_name:
-                    output.append(f"  ► {jugador}")
-                else:
-                    output.append(f"    {jugador}")
-            
-            output.append("")
-            output.append(f"ESTADÍSTICAS DE {summoner_name}:")
-            output.append("-" * 60)
-            output.append(f"K/D/A:             {kills}/{deaths}/{assists} (KDA: {kda:.2f})")
-            output.append(f"CS:                {cs}")
-            output.append(f"Gold:              {gold_earned}")
-            output.append(f"Daño a campeones:  {total_damage_to_champions}")
-            output.append(f"Daño recibido:     {total_damage_taken}")
-            output.append(f"Vision Score:      {vision_score}")
-            output.append(f"Nivel final:       {level}")
-            output.append("=" * 60)
+            output = [
+                "",
+                "=" * 60,
+                "Resultado: ✓ VICTORIA" if resultado == 1 else "Resultado: ✗ DERROTA",
+                f"Duración: {duracion_formateada}",
+                "=" * 60,
+                "",
+                "EQUIPO AZUL (100):",
+                *[f"  ► {j}" if j == summoner_name else f"    {j}" for j in equipo_azul],
+                "",
+                "EQUIPO ROJO (200):",
+                *[f"  ► {j}" if j == summoner_name else f"    {j}" for j in equipo_rojo],
+                "",
+                f"ESTADÍSTICAS DE {summoner_name}:",
+                "-" * 60,
+                f"K/D/A:             {kills}/{deaths}/{assists} (KDA: {kda:.2f})",
+                f"CS:                {player_stats['totalMinionsKilled'] + player_stats['neutralMinionsKilled']}",
+                f"Gold:              {player_stats['goldEarned']}",
+                f"Daño a campeones:  {player_stats['totalDamageDealtToChampions']}",
+                f"Daño recibido:     {player_stats['totalDamageTaken']}",
+                f"Vision Score:      {player_stats['visionScore']}",
+                f"Nivel final:       {player_stats['champLevel']}",
+                "=" * 60,
+            ]
             
             results.append("\n".join(output))
             
@@ -133,6 +116,7 @@ if __name__ == "__main__":
             continue
     
     if results:
-        print("\nNEXT_MATCH\n".join(results))  # ← MANTENER EL SEPARADOR
+        output_text = "\nNEXT_MATCH\n".join(results)
+        os.write(output_fd, output_text.encode('utf-8'))
     
     sys.exit(0)
