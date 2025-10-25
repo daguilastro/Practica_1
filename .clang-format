@@ -1,0 +1,109 @@
+---
+BasedOnStyle: Google
+
+Language: Cpp
+Standard: c++11
+
+# Indentación
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ContinuationIndentWidth: 4
+
+# Llaves
+BreakBeforeBraces: Attach
+
+# Espaciado
+SpaceAfterCStyleCast: false
+SpaceAfterLogicalNot: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeCpp11BracedList: false
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeInheritanceColon: true
+SpaceBeforeParens: ControlStatements
+SpaceBeforeRangeBasedForLoopColon: true
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInContainerLiterals: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# Alineación
+AlignAfterOpenBracket: DontAlign
+# ^^^^^ DontAlign evita romper en paréntesis
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: false
+# ^^^^^ false evita alinear operandos en múltiples líneas
+AlignTrailingComments: true
+
+# ===== LÍMITE DE LÍNEA MUY ALTO =====
+ColumnLimit: 0
+# ^^^^^ 0 = SIN LÍMITE, nunca rompe líneas por longitud
+MaxEmptyLinesToKeep: 1
+KeepEmptyLinesAtTheStartOfBlocks: false
+
+# ===== COMENTARIOS =====
+ReflowComments: false
+# ^^^^^ NO reformatea comentarios
+
+# Incluir archivos
+IncludeBlocks: Regroup
+SortIncludes: true
+
+# Punteros y referencias
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Funciones
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Empty
+
+# ===== PARÁMETROS - NUNCA ROMPER =====
+BinPackArguments: true
+BinPackParameters: true
+AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllArgumentsOnNextLine: true
+# Cuando son true + ColumnLimit: 0, mantiene todo en una línea
+
+# Namespace
+CompactNamespaces: false
+FixNamespaceComments: true
+
+# Constructores
+BreakConstructorInitializers: BeforeColon
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerIndentWidth: 4
+
+# Control de flujo
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+
+# Saltos de línea
+AlwaysBreakAfterReturnType: None
+AlwaysBreakBeforeMultilineStrings: false
+AlwaysBreakTemplateDeclarations: Yes
+BreakBeforeBinaryOperators: None
+BreakBeforeTernaryOperators: false
+
+# ===== PENALIZACIONES MÁXIMAS =====
+PenaltyBreakAssignment: 10000
+PenaltyBreakBeforeFirstCallParameter: 10000
+PenaltyBreakComment: 10000
+PenaltyBreakFirstLessLess: 10000
+PenaltyBreakString: 10000
+PenaltyExcessCharacter: 0
+# ^^^^^ 0 = NO penaliza líneas largas
+PenaltyReturnTypeOnItsOwnLine: 10000
+
+# Otros
+Cpp11BracedListStyle: true
+IndentCaseLabels: false
+IndentPPDirectives: None
