@@ -30,7 +30,6 @@ cleanup:
 	@echo "Limpiando archivos generados..."
 	@rm -f build_sorted_index server_search client_search
 	@rm -f index_sorted.idx .server.pid server.pid
-	@rm -f /tmp/search_* unique_players.txt
 	@echo "✓ Solo quedan archivos de código fuente (.cpp, .hpp, .py, .csv)"
 
 clean:
