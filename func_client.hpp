@@ -6,6 +6,8 @@
 #include <unistd.h>
 #include <cstring>
 #include <vector>
+#include <cstdio>
+
 
 using namespace std;
 

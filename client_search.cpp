@@ -1,5 +1,4 @@
 #include "func_client.hpp"
-#include <cstdio>
 
 int main(){
     while(true){
