@@ -1,5 +1,4 @@
 #include "func_server.hpp"
-#include <cstdio>
 
 uint32_t fnv1a32(const string &s, uint32_t HASH_MOD) {
   const uint32_t FNV_PRIME = 16777619u;
@@ -92,6 +91,9 @@ int64_t upper_bound_hash(ifstream &idx, uint16_t target, uint64_t N,
 }
 
 string searchServer(string summoner_name) {
+    // Inicio de medición de tiempo
+    auto start_time = std::chrono::high_resolution_clock::now();
+
     uint16_t h = fnv1a32(summoner_name, HASH_MOD);
     
     ifstream idx("index_sorted.idx", ios::binary);
@@ -201,6 +203,12 @@ string searchServer(string summoner_name) {
         return "ERROR: No se encontraron partidas del jugador\n";
     }
     
+    // Fin de medición de tiempo
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
+    
+    printf("Tiempo de búsqueda: %d\n", (int)duration);
+
     return all_results;
 }
 
