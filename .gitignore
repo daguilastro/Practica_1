@@ -1,0 +1,4 @@
+# Ignorar archivos específicos
+.clang-format
+dataset.csv
+README.md
