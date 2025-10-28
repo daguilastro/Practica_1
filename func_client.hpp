@@ -1,18 +1,42 @@
 #pragma once
+
 #include <iostream>
 #include <string>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
 #include <cstring>
-#include <vector>
-#include <cstdio>
-
+#include <unistd.h>
+#include <sys/socket.h>
+#include <sys/un.h>
 
 using namespace std;
 
-void send_request(const string& name);
+// ============================================
+// CONSTANTES
+// ============================================
+#define SOCKET_PATH "/tmp/demo_unix_epoll.sock"  // Ruta del socket UNIX para comunicación
+#define BUFFER_SIZE 4096  // Tamaño del buffer de lectura (4KB)
 
-string receive_response();
+// ============================================
+// FUNCIONES DE COMUNICACIÓN
+// ============================================
 
-void display_matches_interactive(const string& all_matches);
+// Conecta al servidor, envía el nombre del jugador y recibe la respuesta completa
+// Parámetro: name - nombre del jugador a buscar
+// Retorna: string con todas las partidas encontradas o mensaje de error
+string sendRequestAndReceive(const string& name);
+
+// ============================================
+// FUNCIONES DE DISPLAY
+// ============================================
+
+// Muestra las partidas de forma interactiva (una por una, esperando ENTER)
+// Parámetro: response - string completo con todas las partidas separadas por "NEXT_MATCH"
+void displayMatchesInteractive(const string& response);
+
+// ============================================
+// UTILIDADES
+// ============================================
+
+// Elimina espacios, tabs y saltos de línea al inicio y final de un string
+// Parámetro: s - string a limpiar
+// Retorna: string sin espacios en los extremos
+string trim(const string &s);

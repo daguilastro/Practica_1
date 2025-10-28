@@ -1,65 +1,150 @@
 #include "func_client.hpp"
-#include <cstdio>
 
-// Enviamos por la pipe /tmp/search_request el nombre que vamos a buscar
-void send_request(const string& name){
-    const char* request_pipe = "/tmp/search_request"; // Dirección donde esta guardada la pipe
+// ============================================
+// UTILIDADES
+// ============================================
+
+string trim(const string &s) {
+    string result = s;
     
-    int fd = open(request_pipe, O_WRONLY);  // abrimos la pipe en modo Write Only.
-    if(fd < 0){
-        cerr << "[CLIENT] Error: No se pudo conectar al servidor.\n";
-        cerr << "[CLIENT] Asegúrate de que server_search esté ejecutándose.\n";
+    // Eliminar espacios del final
+    while (!result.empty() && (result.back() == ' ' || result.back() == '\t' || 
+                               result.back() == '\r' || result.back() == '\n')) {
+        result.pop_back();
+    }
+    
+    // Eliminar espacios del inicio
+    size_t i = 0;
+    while (i < result.size() && (result[i] == ' ' || result[i] == '\t' || 
+                                 result[i] == '\r' || result[i] == '\n')) {
+        ++i;
+    }
+    
+    return result.substr(i);
+}
+
+// ============================================
+// FUNCIONES DE COMUNICACIÓN
+// ============================================
+
+string sendRequestAndReceive(const string& name) {
+    // 1. Crear socket UNIX
+    int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    if (sock_fd < 0) {
+        cerr << "[CLIENT] Error creando socket\n";
+        return "[CLIENT] Error de conexión\n";
+    }
+
+    // 2. Configurar dirección del servidor
+    struct sockaddr_un server_addr;
+    memset(&server_addr, 0, sizeof(server_addr));
+    server_addr.sun_family = AF_UNIX;  // Familia de direcciones UNIX (local)
+    strncpy(server_addr.sun_path, SOCKET_PATH, sizeof(server_addr.sun_path) - 1);
+
+    // 3. Conectar al servidor (bloqueante - espera hasta conectar)
+    if (connect(sock_fd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        cerr << "[CLIENT] Error: No se pudo conectar al servidor\n";
+        cerr << "[CLIENT] Asegúrate de que server_search esté ejecutándose\n";
+        close(sock_fd);
+        return "[CLIENT] Error de conexión\n";
+    }
+
+    cout << "[CLIENT] Conectado al servidor\n";
+
+    // 4. Enviar nombre del jugador (¡IMPORTANTE: agregar \n al final!)
+    // El servidor usa '\n' como delimitador para saber cuándo terminó el mensaje
+    string message = name + "\n";
+    ssize_t bytes_sent = send(sock_fd, message.c_str(), message.size(), 0);
+    if (bytes_sent < 0) {
+        cerr << "[CLIENT] Error enviando solicitud\n";
+        close(sock_fd);
+        return "[CLIENT] Error enviando solicitud\n";
+    }
+
+    cout << "[CLIENT] Solicitud enviada, esperando respuesta...\n";
+
+    // 5. Recibir respuesta completa del servidor
+    string response = "";
+    char buffer[BUFFER_SIZE];
+    size_t total_bytes = 0;
+
+    // Leer en bucle hasta que el servidor cierre la conexión (bytes_recv == 0)
+    while (true) {
+        memset(buffer, 0, sizeof(buffer));  // Limpiar buffer
+        ssize_t bytes_recv = recv(sock_fd, buffer, sizeof(buffer) - 1, 0);
+
+        if (bytes_recv < 0) {
+            // Error al recibir
+            cerr << "[CLIENT] Error recibiendo respuesta\n";
+            break;
+        } else if (bytes_recv == 0) {
+            // Servidor cerró la conexión - respuesta completa recibida
+            break;
+        }
+
+        // Agregar datos recibidos a la respuesta
+        response.append(buffer, bytes_recv);
+        total_bytes += bytes_recv;
+        
+        // Mostrar progreso para búsquedas grandes (cada 10KB)
+        if (total_bytes % 10240 == 0) {
+            cout << "[CLIENT] Recibiendo... " << (total_bytes / 1024) << " KB\r" << flush;
+        }
+    }
+
+    // Mostrar tamaño total recibido
+    if (total_bytes > 1024) {
+        cout << "[CLIENT] Respuesta completa recibida: " << (total_bytes / 1024) << " KB        \n";
+    } else {
+        cout << "[CLIENT] Respuesta completa recibida: " << total_bytes << " bytes\n";
+    }
+
+    close(sock_fd);
+    return response;
+}
+
+// ============================================
+// FUNCIONES DE DISPLAY
+// ============================================
+
+void displayMatchesInteractive(const string& response) {
+    // Verificar si no hay resultados
+    if (response == "NA\n") {
+        cout << "\nNo se encontraron resultados.\n";
         return;
     }
     
-    write(fd, name.c_str(), name.size());   // Escribimos el nombre
-    close(fd);  // Cerramos la pipe de nuestro lado
-}
-
-// Recibimos por la pipe /tmp/search_response los datos donde econtramos al jugador
-string receive_response(){
-    const char* response_pipe = "/tmp/search_response";
-    int fd = open(response_pipe, O_RDONLY); // Creamos la pipe en modo Read Only
-    if(fd < 0){
-        return "[CLIENT] Error: No se pudo recibir respuesta del servidor.\n";
+    // Verificar si hay error
+    if (response.find("ERROR") == 0) {
+        cout << "\n" << response;
+        return;
     }
-    
-    string result = "";
-    char buffer[4096];  // Creamos un buffer donde iremos metiendo los datos enviados
-    
-    while(true){
-        memset(buffer, 0, sizeof(buffer));
-        ssize_t bytes_read = read(fd, buffer, sizeof(buffer) - 1);  // Esperamos los datos de fd y los metemos al buffer
-        
-        if(bytes_read <= 0) break;  // Si acabó de leer todo terminamos.
-        
-        result += string(buffer, bytes_read);   // añadimos al resultado los datos guardados en el buffer
-    }
-    
-    close(fd);
-    return result;
-}
-
-// Mostramos de forma estética el resultado enviado del servidor
-void display_matches_interactive(const string& all_matches) {
     
     size_t pos = 0;
-    size_t next_pos;
     int match_num = 1;
     
+    // Iterar sobre cada partida separada por "NEXT_MATCH"
     while (true) {
-        // Buscar el próximo NEXT_MATCH
-        next_pos = all_matches.find("NEXT_MATCH", pos);
+        // Buscar el próximo separador "NEXT_MATCH"
+        size_t next_pos = response.find("NEXT_MATCH", pos);
         
         // Extraer la partida actual
         string match;
         if (next_pos != string::npos) {
-            match = all_matches.substr(pos, next_pos - pos);
+            // Hay más partidas después
+            match = response.substr(pos, next_pos - pos);
         } else {
             // Última partida (o única)
-            match = all_matches.substr(pos);
+            match = response.substr(pos);
+            
+            // Si está vacío, ya terminamos
+            if (trim(match).empty()) {
+                break;
+            }
         }
         
+        // Mostrar la partida con su número
+        cout << "\n================= PARTIDA #" << match_num << " =================\n";
         cout << match << endl;
         
         // Si no hay más partidas, terminar
@@ -67,24 +152,30 @@ void display_matches_interactive(const string& all_matches) {
             break;
         }
         
-        // Preguntar si continuar
+        // Preguntar al usuario si quiere continuar
         cout << "\nPresiona ENTER para ver la siguiente partida (o 'q' + ENTER para salir): ";
         string input;
         getline(cin, input);
         
         if (!input.empty() && (input[0] == 'q' || input[0] == 'Q')) {
-            cout << "Visualización cancelada.\n";
+            cout << "Visualización cancelada. Quedan " 
+                 << ((response.size() - next_pos) / 1000) << " KB sin mostrar.\n";
             return;
         }
         
-        // Mover posición después de NEXT_MATCH
+        // Mover posición después de "NEXT_MATCH"
         pos = next_pos + 10;  // 10 = longitud de "NEXT_MATCH"
         
-        // Saltar el newline después de NEXT_MATCH si existe
-        if (pos < all_matches.length() && all_matches[pos] == '\n') {
+        // Saltar el salto de línea después de NEXT_MATCH si existe
+        if (pos < response.length() && response[pos] == '\n') {
             pos++;
         }
         
         match_num++;
     }
+    
+    // Mostrar resumen final
+    cout << "\n========================================\n";
+    cout << "Total de partidas mostradas: " << (match_num - 1) << "\n";
+    cout << "========================================\n";
 }

@@ -1,35 +1,27 @@
 CXX = g++
+CXXFLAGS = 
 
-# Archivos que se van a mantener (fuentes)
-KEEP_FILES = *.cpp *.hpp *.py dataset.csv
+all: build_sorted_index server_search client_search
 
-# Archivos generados que se borrarán
-GENERATED = build_sorted_index server_search client_search \
-            index_sorted.idx .server.pid server.pid \
-            /tmp/search_* unique_players.txt
+build_sorted_index: build_sorted_index.cpp
+	$(CXX) $(CXXFLAGS) -o build_sorted_index build_sorted_index.cpp
 
-all: build_index server client
+server_search: server_search.cpp func_server.cpp func_server.hpp
+	$(CXX) $(CXXFLAGS) -o server_search server_search.cpp func_server.cpp
+
+client_search: client_search.cpp func_client.cpp func_client.hpp
+	$(CXX) $(CXXFLAGS) -o client_search client_search.cpp func_client.cpp
+
+run: all
 	./build_sorted_index
-	./server_search &
-	@sleep 1
+	./server_search & echo $$! > /tmp/server.pid
+	sleep 2
 	./client_search
-	@pkill -F .server.pid || true
-	@$(MAKE) cleanup
-
-build_index: build_sorted_index.cpp
-	$(CXX) -o build_sorted_index $<
-
-server: server_search.cpp func_server.cpp func_server.hpp
-	$(CXX) -o server_search server_search.cpp func_server.cpp
-
-client: client_search.cpp func_client.cpp func_client.hpp
-	$(CXX) -o client_search client_search.cpp func_client.cpp
-
-cleanup:
-	@rm -f build_sorted_index server_search client_search
-	@rm -f index_sorted.idx .server.pid server.pid
+	kill `cat /tmp/server.pid` 2>/dev/null || true
+	rm -f /tmp/server.pid /tmp/demo_unix_epoll.sock
 
 clean:
-	@rm -f $(GENERATED) *.o
+	rm -f build_sorted_index server_search client_search index_sorted.idx
+	rm -f /tmp/server.pid /tmp/demo_unix_epoll.sock
 
-.PHONY: all build_index server client cleanup clean
+.PHONY: all run clean

@@ -1,26 +1,38 @@
 #include "func_client.hpp"
 
-int main(){
-    while(true){
+int main() {
+    // Bucle principal del cliente
+    while (true) {
+        // Solicitar nombre del jugador
         cout << "Ingrese el nombre del jugador a buscar (o 'exit' para salir): ";
         
         string name;
-        getline(cin, name);     // Escribimos el nombre a buscar
+        getline(cin, name);  // Leer línea completa (permite espacios)
         
-        if(name.empty()) continue;
+        // Limpiar espacios en blanco
+        name = trim(name);
         
-        if(name == "exit" || name == "EXIT"){
+        // Ignorar entradas vacías
+        if (name.empty()) continue;
+        
+        // Comando para salir
+        if (name == "exit" || name == "EXIT") {
             cout << "\nCerrando cliente y servidor...\n";
             // Enviar señal de salida al servidor
-            send_request("EXIT_SERVER");
+            sendRequestAndReceive("EXIT_SERVER");
             sleep(1);  // Dar tiempo al servidor para cerrar
             break;
         }
         
-        cout << "\n[CLIENT] Enviando solicitud al servidor...\n";   // Le hacemos la petición al server
-        send_request(name);
-        string response = receive_response();
-        display_matches_interactive(response);
+        cout << "\n[CLIENT] Conectando al servidor...\n";
+        
+        // Enviar solicitud y recibir respuesta del servidor
+        string response = sendRequestAndReceive(name);
+        
+        // Mostrar resultados de forma interactiva (una partida a la vez)
+        displayMatchesInteractive(response);
+        
+        cout << "\n";  // Separador entre búsquedas
     }
     
     cout << "¡Hasta luego!\n";
