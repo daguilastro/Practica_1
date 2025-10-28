@@ -1,4 +1,21 @@
-# Ignorar archivos específicos
-.clang-format
-dataset.csv
-README.md
+# Ignorar todo por defecto
+*
+
+# Conservar estructura de carpetas
+!*/
+
+# Mantener solo código y archivos específicos
+!.gitignore
+!Makefile
+!*.c
+!*.cc
+!*.cpp
+!*.h
+!*.hpp
+
+# (Opcional) permitir README/markdown, configs
+!*.md
+!.clang-format
+
+# Mantener explícitamente lo que sí quieres versionar
+# (el resto, incluidos ejecutables, queda fuera)

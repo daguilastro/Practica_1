@@ -25,7 +25,7 @@ using namespace std;
 // ============================================
 #define SOCKET_PATH "/tmp/demo_unix_epoll.sock"
 #define MAX_EVENTS 30
-#define BUFFER_SIZE 256
+#define BUFFER_SIZE 4096
 
 static const uint32_t HASH_MOD = 65536;
 
