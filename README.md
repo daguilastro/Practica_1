@@ -1,6 +1,6 @@
 # League of Legends Match Search System - v2.0
 
-> **Práctica 1 - Sistemas Operativos**  
+> **Práctica 2 - Sistemas Operativos**  
 > Sistema cliente-servidor optimizado con búsqueda indexada, capacidad de añadir partidas y cierre controlado.
 
 ---
