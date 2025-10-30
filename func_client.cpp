@@ -1,10 +1,9 @@
 #include "func_client.hpp"
 #include <cstdio>
 
-// ============================================
+// 
 // UTILIDADES
-// ============================================
-
+// 
 string trim(const string &s) {
 	string result = s;
 
@@ -22,25 +21,24 @@ string trim(const string &s) {
 	return result.substr(i);
 }
 
-// ============================================
+// 
 // FUNCIONES DE COMUNICACIÓN
-// ============================================
-
+// 
 string sendRequestAndReceive(const string &name) {
-	// 1. Crear socket UNIX
+	// Crear socket UNIX
 	int sock_fd = socket(AF_UNIX, SOCK_STREAM, 0);
 	if (sock_fd < 0) {
 		cerr << "[CLIENT] Error creando socket\n";
 		return "[CLIENT] Error de conexión\n";
 	}
 
-	// 2. Configurar dirección del servidor
+	// Configurar dirección del servidor
 	struct sockaddr_un server_addr;
 	memset(&server_addr, 0, sizeof(server_addr));
 	server_addr.sun_family = AF_UNIX; // Familia de direcciones UNIX (local)
 	strncpy(server_addr.sun_path, SOCKET_PATH, sizeof(server_addr.sun_path) - 1);
 
-	// 3. Conectar al servidor (bloqueante - espera hasta conectar)
+	// Conectar al servidor (es bloqueante, espera hasta conectar)
 	if (connect(sock_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
 		cerr << "[CLIENT] Error: No se pudo conectar al servidor\n";
 		cerr << "[CLIENT] Asegúrate de que server_search esté ejecutándose\n";
@@ -50,8 +48,8 @@ string sendRequestAndReceive(const string &name) {
 
 	cout << "[CLIENT] Conectado al servidor\n";
 
-	// 4. Enviar nombre del jugador (¡IMPORTANTE: agregar \n al final!)
-	// El servidor usa '\n' como delimitador para saber cuándo terminó el mensaje
+	// Enviar nombre del jugador (es IMPORTANTE agregar \n al final)
+	// El servidor usa '\n' como delimitador para saber cuando terminó el mensaje
 	string message = name + "\n";
 	ssize_t bytes_sent = send(sock_fd, message.c_str(), message.size(), 0);
 	if (bytes_sent < 0) {
@@ -62,7 +60,7 @@ string sendRequestAndReceive(const string &name) {
 
 	cout << "[CLIENT] Solicitud enviada, esperando respuesta...\n";
 
-	// 5. Recibir respuesta completa del servidor
+	// Recibir respuesta completa del servidor
 	string response = "";
 	char buffer[BUFFER_SIZE];
 	size_t total_bytes = 0;
@@ -90,9 +88,9 @@ string sendRequestAndReceive(const string &name) {
 	return response;
 }
 
-// ============================================
+// 
 // FUNCIONES DE DISPLAY
-// ============================================
+// 
 
 void displayMatchesInteractive(const string &response) {
 	// Verificar si no hay resultados
@@ -103,8 +101,7 @@ void displayMatchesInteractive(const string &response) {
 
 	// Verificar si hay error
 	if (response.find("ERROR") == 0) {
-		cout << "\n"
-			 << response;
+		cout << "\n" << response;
 		return;
 	}
 
@@ -119,7 +116,7 @@ void displayMatchesInteractive(const string &response) {
 		// Extraer la partida actual
 		string match;
 		if (next_pos != string::npos) {
-			// Hay más partidas después
+			// Hay mas partidas después
 			match = response.substr(pos, next_pos - pos);
 		} else {
 			// Última partida (o única)
@@ -132,7 +129,7 @@ void displayMatchesInteractive(const string &response) {
 		}
 
 		// Mostrar la partida con su número
-		cout << "\n================= PARTIDA #" << match_num << " =================\n";
+		cout << "\n-          PARTIDA #" << match_num << "          -\n";
 		cout << match << endl;
 
 		// Si no hay más partidas, terminar
@@ -146,8 +143,7 @@ void displayMatchesInteractive(const string &response) {
 		getline(cin, input);
 
 		if (!input.empty() && (input[0] == 'q' || input[0] == 'Q')) {
-			cout << "Visualización cancelada. Quedan "
-				 << ((response.size() - next_pos) / 1000) << " KB sin mostrar.\n";
+			cout << "Visualización cancelada. Quedan " << ((response.size() - next_pos) / 1000) << " KB sin mostrar.\n";
 			return;
 		}
 
@@ -163,7 +159,7 @@ void displayMatchesInteractive(const string &response) {
 	}
 
 	// Mostrar resumen final
-	cout << "\n========================================\n";
+	cout << "\n\n";
 	cout << "Total de partidas mostradas: " << (match_num - 1) << "\n";
-	cout << "========================================\n";
+	cout << "__________________________________\n";
 }

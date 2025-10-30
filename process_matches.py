@@ -88,7 +88,7 @@ if __name__ == "__main__":
             output = [
                 "",
                 "=" * 60,
-                "Resultado: ✓ VICTORIA" if resultado == 1 else "Resultado: ✗ DERROTA",
+                "Resultado: VICTORIA" if resultado == 1 else "Resultado: DERROTA",
                 f"Duración: {duracion_formateada}",
                 "=" * 60,
                 "",
