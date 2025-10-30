@@ -268,7 +268,7 @@ int addSocketToEpoll(int fdEpoll, int fdSocket, uint32_t events) {
     event.events = events;
     event.data.fd = fdSocket;
     
-    if (epoll_ctl(fdEpoll, EPOLL_CTL_ADD, fdSocket, &event) < 0) {
+    if (epoll_ctl(fdEpoll, EPOLL_CTL_ADD, fdSocket, &event) != 0) {
         cerr << "[ERROR] No se pudo agregar FD " << fdSocket << " a epoll\n";
         return -1;
     }
@@ -290,6 +290,7 @@ int removeSocketFromEpoll(int fdEpoll, int fdSocket) {
 
 // Buffer estático para mantener mensajes parciales por cliente
 static map<int, string> client_buffers;
+static map<int, size_t bytesSent> client_out_bytes;
 
 int acceptNewClient(int fdServer, int fdEpoll) {
     struct sockaddr_un client_addr;
@@ -320,91 +321,65 @@ int acceptNewClient(int fdServer, int fdEpoll) {
     return clientFd;
 }
 
-string receiveFromClient(int clientFd) {
+int receiveFromClient(int clientFd, int epollFd) {
     char buffer[BUFFER_SIZE];
-    
-    // Leer todo lo disponible en el socket
-    while (true) {
-        memset(buffer, 0, sizeof(buffer));
-        ssize_t bytes_recv = recv(clientFd, buffer, sizeof(buffer) - 1, 0);
 
-        if (bytes_recv < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // No hay más datos disponibles por ahora
-                break;
+    while (true){
+        ssize_t bytes_recv = recv(clientFd, buffer, sizeof(buffer), 0);
+        if (bytes_recv > 0){    // Hay datos
+            client_buffers[clientFd].append(buffer, bytes_recv);
+            continue;
+        }
+        else if (bytes_recv == 0){  // Se cerró la conexión
+            epoll_ctl(epollFd, EPOLL_CTL_DEL, clientFd, nullptr);
+            if (client_buffers[clientFd].find('\n') == string::npos){
+                return -1;
             }
-            cerr << "[ERROR] Error recibiendo datos\n";
-            return "";
+            return 1;
         }
-
-        if (bytes_recv == 0) {
-            // Cliente cerró conexión
-            return "";
+        else if (errno == EAGAIN){  // errores
+            return 0;
         }
-
-        // Agregar al buffer del cliente
-        client_buffers[clientFd] += string(buffer, bytes_recv);
-    }
-
-    // Buscar mensaje completo (terminado en '\n')
-    size_t pos = client_buffers[clientFd].find('\n');
-    
-    if (pos != string::npos) {
-        // Mensaje completo encontrado
-        string complete_msg = client_buffers[clientFd].substr(0, pos);
-        client_buffers[clientFd].erase(0, pos + 1);  // Eliminar del buffer
-        return complete_msg;
-    }
-
-    // Mensaje incompleto, esperar más datos
-    return "";
-}
-
-bool sendToClient(int clientFd, const string &data) {
-    const char* ptr = data.c_str();
-    size_t total_sent = 0;
-    size_t total_len = data.size();
-
-    while (total_sent < total_len) {
-        ssize_t bytes_sent = send(clientFd, ptr + total_sent, 
-                                 total_len - total_sent, 0);
-
-        if (bytes_sent < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                // Buffer lleno, esperar un poco
-                usleep(1000);
-                continue;
-            }
-            cerr << "[ERROR] Error enviando datos\n";
-            return false;
-        }
-
-        total_sent += bytes_sent;
-    }
-
-    return true;
-}
-
-void handleClientData(int clientFd, int fdEpoll) {
-    // Recibir nombre del jugador
-    string name = receiveFromClient(clientFd);
-
-    if (name.empty()) {
-        // Mensaje incompleto o error
-        if (errno != EAGAIN && errno != EWOULDBLOCK) {
-            // Error real o cliente desconectado
-            cout << "[SERVER] Cliente desconectado (FD " << clientFd << ")\n";
-            cleanupClient(clientFd);
-            removeSocketFromEpoll(fdEpoll, clientFd);
+        else{
+            epoll_ctl(epollFd, EPOLL_CTL_DEL, clientFd, nullptr);
             close(clientFd);
+            return -1;
         }
-        // Si es EAGAIN/EWOULDBLOCK, simplemente esperamos más datos
-        return;
     }
+}
 
-    cout << "[SERVER] Búsqueda recibida de FD " << clientFd << ": \"" << name << "\"\n";
+void sendToClient(int clientFd, string& data, int epollFd) {
+    const char* ptr = data.c_str();
+    size_t& totalSent = client_out_bytes[clientFd];
+    while (totalSent < data.size()){
+        ssize_t bytes_sent = send(clientFd, ptr + totalSent, data.size() - totalSent, 0);
+        if (bytes_sent < 0) {
+            if (errno == EAGAIN){
+                epoll_event ev{};
+                ev.data.fd = clientFd;
+                ev.events  = EPOLLOUT | EPOLLIN;            
+                epoll_ctl(epollFd, EPOLL_CTL_MOD, clientFd, &ev); // prender epollout
+                return ; // 
+            }
+            epoll_ctl(epollFd, EPOLL_CTL_DEL, clientFd, NULL);
+            close(clientFd);
+            cerr << "[ERROR] Error enviando datos\n";
+            return;
+        }
+        if (bytes_sent > 0){
+            totalSent += bytes_sent;
+            if (totalSent == data.size()){
+                epoll_ctl(epollFd, EPOLL_CTL_DEL, clientFd, NULL);
+                close(clientFd);
+                client_out_bytes.erase(clientFd);
+                return; // Ya envió todo
+            }
+            continue;
+        }
+    }
+    return ;
+}
 
-    // Verificar comando de salida
     if (name == "EXIT_SERVER") {
         cout << "[SERVER] Comando de salida recibido\n";
         cleanupClient(clientFd);
@@ -414,26 +389,6 @@ void handleClientData(int clientFd, int fdEpoll) {
         return;
     }
 
-    // Realizar búsqueda
-    string result = searchServer(name);
-
-    // Enviar resultado
-    if (sendToClient(clientFd, result)) {
-        cout << "[SERVER] Resultado enviado a FD " << clientFd 
-             << " (" << result.size() << " bytes)\n";
-    } else {
-        cerr << "[SERVER] Error enviando resultado a FD " << clientFd << "\n";
-    }
-
-    // Cerrar conexión con el cliente
-    cleanupClient(clientFd);
-    removeSocketFromEpoll(fdEpoll, clientFd);
-    close(clientFd);
-}
-
-void cleanupClient(int clientFd) {
-    client_buffers.erase(clientFd);
-}
 
 // ============================================
 // UTILIDADES

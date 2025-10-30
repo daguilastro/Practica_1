@@ -35,7 +35,7 @@ int main() {
     // 5. Bucle principal
     while (true) {
         // Esperar eventos (bloqueante hasta que llegue algo)
-        int nfds = epoll_wait(fdEpoll, events, MAX_EVENTS, -1); // Number of file descriptors
+        int nfds = epoll_wait(epollFd, events, MAX_EVENTS, -1); // Number of file descriptors
 
         if (nfds < 0) {
             cerr << "[ERROR] Error en epoll_wait\n";
@@ -44,21 +44,32 @@ int main() {
 
         // Procesar todos los eventos
         for (int i = 0; i < nfds; i++) {
-            int fd = events[i].data.fd;
-
+            int connectionFd = events[i].data.fd;
+            uint32_t event = events[i].events;
             // Evento en el servidor = nueva conexión
-            if (fd == fdServer) {
+            if (connectionFd == fdServer) {
                 // Aceptar todas las conexiones pendientes
-                while (true) {
-                    int clientFd = acceptNewClient(fdServer, fdEpoll);
-                    if (clientFd <= 0) {
-                        break;  // No hay más conexiones o error
+                while (true){
+                    if(acceptNewClient(fdServer, epollFd) < 1){
+                        break;
                     }
                 }
+                continue;
             }
-            // Evento en un cliente = datos recibidos
-            else {
-                handleClientData(fd, fdEpoll);
+
+            if (event & EPOLLIN){
+                int messageReady = receiveFromClient(connectionFd, epollFd);
+                if (messageReady == 1){ // Hay mensaje
+                    client_buffers[connectionFd] = searchServer(client_buffers[connectionFd].c_str()); // Procesamos el mensaje sobreescribiendo lo que había antes
+                    sendToClient(connectionFd, &client_buffers[connectionFd], epollFd);
+                }
+                else if (messageReady == -1){   // no hay mensaje
+                    client_buffers[connectionFd].erase(); // borramos el mensaje en el map
+                }
+            }
+
+            if (event & EPOLLOUT){
+                sendToClient(connectionFd, &client_buffers[connectionFd], epollFd);
             }
         }
     }
