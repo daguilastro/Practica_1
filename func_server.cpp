@@ -401,3 +401,39 @@ string trim(const string &s) {
 
 	return result.substr(i);
 }
+
+bool add_line_and_rebuild(const string &csv_line) {
+    cout << "[SERVER] add_line_and_rebuild: escribiendo línea en dataset.csv\n";
+    string to_write = csv_line;
+    if (to_write.empty()) {
+        cerr << "[SERVER] add_line_and_rebuild: línea vacía, abortando\n";
+        return false;
+    }
+    if (to_write.back() != '\n') to_write.push_back('\n');
+
+    ofstream out("dataset.csv", ios::out | ios::app);
+    if (!out.is_open()) {
+        cerr << "[SERVER] add_line_and_rebuild: no pude abrir dataset.csv para append\n";
+        return false;
+    }
+    out << to_write;
+    if (!out) {
+        cerr << "[SERVER] add_line_and_rebuild: error escribiendo en dataset.csv\n";
+        out.close();
+        return false;
+    }
+    out.close();
+
+    cout << "[SERVER] Línea añadida (preview):\n";
+    if (to_write.size() <= 200) cout << to_write;
+    else cout << to_write.substr(0,200) << "...\n";
+
+    cout << "[SERVER] Ejecutando ./build_sorted_index ...\n";
+    int sysret = system("./build_sorted_index");
+    if (sysret != 0) {
+        cerr << "[SERVER] build_sorted_index devolvió código: " << sysret << "\n";
+        return false;
+    }
+    cout << "[SERVER] build_sorted_index finalizó OK\n";
+    return true;
+}

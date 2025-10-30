@@ -71,3 +71,5 @@ void sendToClient(int clientFd, string &data, int epollFd);
 // UTILIDADES
 // ============================================
 string trim(const string &s);
+
+bool add_line_and_rebuild(const string &csv_line);
