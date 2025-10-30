@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <sys/un.h>
+#include <signal.h>
 
 using namespace std;
 
@@ -19,9 +20,9 @@ using namespace std;
 // FUNCIONES DE COMUNICACIÓN
 // ============================================
 
-// Conecta al servidor, envía el nombre del jugador y recibe la respuesta completa
-// Parámetro: name - nombre del jugador a buscar
-// Retorna: string con todas las partidas encontradas o mensaje de error
+// Conecta al servidor, envía el nombre del jugador y recibe la respuesta completa.
+// Parámetro: name - nombre del jugador a buscar (no incluir '\n', la función lo añade).
+// Retorna: string con todas las partidas encontradas o mensaje de error.
 string sendRequestAndReceive(const string& name);
 
 // ============================================

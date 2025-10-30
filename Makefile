@@ -15,7 +15,7 @@ client_search: client_search.cpp func_client.cpp func_client.hpp
 run: all
 	./build_sorted_index
 	./server_search & echo $$! > /tmp/server.pid
-	sleep 2
+	sleep 1
 	./client_search
 	kill `cat /tmp/server.pid` 2>/dev/null || true
 	rm -f /tmp/server.pid /tmp/demo_unix_epoll.sock

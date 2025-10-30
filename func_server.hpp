@@ -29,6 +29,10 @@ using namespace std;
 
 static const uint32_t HASH_MOD = 65536;
 
+// Buffer estático para mantener mensajes parciales por cliente
+extern std::map<int, std::string> client_buffers;
+extern std::map<int, size_t> client_out_bytes;
+
 // ============================================
 // ESTRUCTURAS
 // ============================================
@@ -48,25 +52,21 @@ uint32_t fnv1a32(const string &s, uint32_t HASH_MOD);
 bool read_csv_line_at(ifstream &csv, uint64_t off, string &out);
 int64_t lower_bound_hash(ifstream &idx, uint16_t target, uint64_t N);
 int64_t upper_bound_hash(ifstream &idx, uint16_t target, uint64_t N, uint64_t L);
-string searchServer(const string &summoner_name);
-
+string searchServer(string &summoner_name);
 // ============================================
 // FUNCIONES DE SOCKET Y EPOLL
 // ============================================
 int createNBSocket();
 void setNonBlocking(int fd);
-int addSocketToEpoll(int fdEpoll, int fdSocket, uint32_t events);
-int removeSocketFromEpoll(int fdEpoll, int fdSocket);
+int addSocketToEpoll(int epollFd, int fdSocket, uint32_t events);
+int removeSocketFromEpoll(int epollFd, int fdSocket);
 
 // ============================================
 // FUNCIONES DE MANEJO DE CLIENTES
 // ============================================
-int acceptNewClient(int fdServer, int fdEpoll);
-void handleClientData(int clientFd, int fdEpoll);
-string receiveFromClient(int clientFd);
-bool sendToClient(int clientFd, const string &data);
-void cleanupClient(int clientFd);
-
+int acceptNewClient(int serverFd, int epollFd);
+int receiveFromClient(int clientFd, int epollFd);
+void sendToClient(int clientFd, string &data, int epollFd);
 // ============================================
 // UTILIDADES
 // ============================================
